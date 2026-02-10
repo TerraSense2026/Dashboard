@@ -1,6 +1,6 @@
 import Header from "@/components/Header";
 import RoverStatus from "@/components/RoverStatus";
-import PlantHealthMonitor from "@/components/PlantHealthMonitor";
+import { GreenhouseStatus } from "@/components/greenhousestatus";
 import RoverVision from "@/components/RoverVision";
 import ControlPanel from "@/components/ControlPanel";
 import EcoLove from "@/components/EcoLove";
@@ -16,8 +16,8 @@ const Index = () => {
         {/* Left: Rover Status */}
         <RoverStatus />
 
-        {/* Center: Plant Health Monitor */}
-        <PlantHealthMonitor />
+        {/* Center: Greenhouse Status */}
+        <GreenhouseStatus />
 
         {/* Right: Rover Vision */}
         <RoverVision />
