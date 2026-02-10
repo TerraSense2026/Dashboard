@@ -9,7 +9,7 @@ const Header = () => {
     <header className="rounded-3xl bg-card shadow-pillow border border-border/50 px-6 py-4 flex items-center justify-between">
       <div>
         <h1 className="text-2xl font-extrabold tracking-tight text-primary">
-          WALL-EDEN Control Center
+          TerraSense
         </h1>
         <p className="text-sm text-muted-foreground font-medium">
           TerraSense — Caring for plants, one leaf at a time 🌿
