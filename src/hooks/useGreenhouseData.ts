@@ -1,17 +1,7 @@
 import { useState, useEffect } from 'react';
-import { database, ref, onValue, limitToLast, query, orderByChild } from '@/lib/firebase';
+import { fetchLiveData, GreenhouseMeasurement } from '@/lib/api';
 
-export interface GreenhouseMeasurement {
-  timestamp: string;
-  plant_name: string;
-  humidity: number;
-  temperature: number;
-  optimal_humidity: number;
-  soil_moisture: number;
-  optimal_soil_moisture: number;
-  last_watered: string;
-  status: 'normal' | 'warning';
-}
+export type { GreenhouseMeasurement } from '@/lib/api';
 
 interface PlantLatestData {
   [plantName: string]: GreenhouseMeasurement;
@@ -23,63 +13,39 @@ export const useGreenhouseData = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
+    let cancelled = false;
 
-    try {
-      const measurementsRef = ref(database, 'greenhouse_measurements');
-      
-      // Listen to real-time updates
-      const unsubscribe = onValue(
-        measurementsRef,
-        (snapshot) => {
-          if (snapshot.exists()) {
-            const allData = snapshot.val();
-            const latestByPlant: PlantLatestData = {};
+    const hydrate = async () => {
+      try {
+        setError(null);
+        const liveData = await fetchLiveData();
+        if (cancelled) return;
 
-            // Group measurements by plant and keep only the latest for each
-            Object.entries(allData).forEach(([key, value]: [string, any]) => {
-              const plantName = value.plant_name;
-              if (!plantName) return;
+        const latestByPlant: PlantLatestData = {};
+        for (const plant of liveData.plants) {
+          latestByPlant[plant.plant_name] = plant;
+        }
 
-              const currentTime = new Date(value.timestamp ?? 0).getTime();
-              const latestTime = new Date(latestByPlant[plantName]?.timestamp ?? 0).getTime();
-
-              // Keep the measurement if it's newer than what we have
-              if (!latestByPlant[plantName] || currentTime > latestTime) {
-                latestByPlant[plantName] = {
-                  timestamp: value.timestamp,
-                  plant_name: value.plant_name,
-                  humidity: value.humidity,
-                  temperature: value.temperature,
-                  optimal_humidity: value.optimal_humidity,
-                  soil_moisture: value.soil_moisture,
-                  optimal_soil_moisture: value.optimal_soil_moisture,
-                  last_watered: value.last_watered,
-                  status: value.status,
-                };
-              }
-            });
-
-            setData(latestByPlant);
-            setLoading(false);
-          } else {
-            setError('No data found');
-            setLoading(false);
-          }
-        },
-        (error) => {
-          setError(error.message);
+        setData(latestByPlant);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'An error occurred');
+        }
+      } finally {
+        if (!cancelled) {
           setLoading(false);
         }
-      );
+      }
+    };
 
-      // Cleanup subscription on unmount
-      return () => unsubscribe();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      setLoading(false);
-    }
+    setLoading(true);
+    hydrate();
+    const timer = setInterval(hydrate, 5000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
   }, []);
 
   return { data, loading, error };

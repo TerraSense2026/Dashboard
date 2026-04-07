@@ -1,14 +1,7 @@
 import { useState, useEffect } from 'react';
-import { database, ref, onValue } from '@/lib/firebase';
+import { fetchLiveData, RoverStatus } from '@/lib/api';
 
-export interface RoverStatus {
-  timestamp: string;
-  latitude: number;
-  longitude: number;
-  battery_level: number;
-  water_tank_level: number;
-  state: 'charging' | 'navigating' | 'off';
-}
+export type { RoverStatus } from '@/lib/api';
 
 export const useRoverData = () => {
   const [data, setData] = useState<RoverStatus | null>(null);
@@ -16,61 +9,38 @@ export const useRoverData = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
+    let cancelled = false;
 
-    try {
-      const roverRef = ref(database, 'rover_status');
-      
-      // Listen to real-time updates
-      const unsubscribe = onValue(
-        roverRef,
-        (snapshot) => {
-          if (snapshot.exists()) {
-            const allData = snapshot.val();
-            
-            // Find the most recent entry based on timestamp
-            let latestRoverData: RoverStatus | null = null;
-            let latestTimestamp: Date | null = null;
+    const hydrate = async () => {
+      try {
+        setError(null);
+        const liveData = await fetchLiveData();
+        if (cancelled) return;
 
-            Object.entries(allData).forEach(([key, value]: [string, any]) => {
-              const timestamp = new Date(value.timestamp);
-              if (!latestTimestamp || timestamp > latestTimestamp) {
-                latestTimestamp = timestamp;
-                latestRoverData = {
-                  timestamp: value.timestamp,
-                  latitude: value.latitude,
-                  longitude: value.longitude,
-                  battery_level: value.battery_level,
-                  water_tank_level: value.water_tank_level,
-                  state: value.state,
-                };
-              }
-            });
-
-            if (latestRoverData) {
-              setData(latestRoverData);
-            } else {
-              setError('No rover data found');
-            }
-            setLoading(false);
-          } else {
-            setError('No rover status data available');
-            setLoading(false);
-          }
-        },
-        (error) => {
-          setError(error.message);
+        if (liveData.roverStatus) {
+          setData(liveData.roverStatus);
+        } else {
+          setError('No rover status data available');
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'An error occurred');
+        }
+      } finally {
+        if (!cancelled) {
           setLoading(false);
         }
-      );
+      }
+    };
 
-      // Cleanup subscription on unmount
-      return () => unsubscribe();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      setLoading(false);
-    }
+    setLoading(true);
+    hydrate();
+    const timer = setInterval(hydrate, 5000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
   }, []);
 
   return { data, loading, error };
