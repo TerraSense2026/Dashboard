@@ -40,12 +40,13 @@ export const useGreenhouseData = () => {
             // Group measurements by plant and keep only the latest for each
             Object.entries(allData).forEach(([key, value]: [string, any]) => {
               const plantName = value.plant_name;
-              
+              if (!plantName) return;
+
+              const currentTime = new Date(value.timestamp ?? 0).getTime();
+              const latestTime = new Date(latestByPlant[plantName]?.timestamp ?? 0).getTime();
+
               // Keep the measurement if it's newer than what we have
-              if (
-                !latestByPlant[plantName] ||
-                new Date(value.timestamp) > new Date(latestByPlant[plantName].timestamp)
-              ) {
+              if (!latestByPlant[plantName] || currentTime > latestTime) {
                 latestByPlant[plantName] = {
                   timestamp: value.timestamp,
                   plant_name: value.plant_name,
