@@ -80,9 +80,16 @@ const PlantCard: React.FC<PlantCardProps> = ({ measurement }) => {
           icon="💨"
           optimal={measurement.optimal_humidity}
         />
-        <StatBubble 
-          label="Last Watered" 
-          value={format(new Date(measurement.last_watered), 'p')} 
+        <StatBubble
+          label="Last Watered"
+          value={(() => {
+            try {
+              const d = new Date(measurement.last_watered);
+              return isNaN(d.getTime()) ? measurement.last_watered : format(d, 'p');
+            } catch {
+              return measurement.last_watered ?? 'Unknown';
+            }
+          })()}
           icon="⏰"
         />
       </div>
@@ -121,7 +128,7 @@ const StatBubble = ({ label, value, icon, optimal }: { label: string; value: str
 
 export const GreenhouseStatus: React.FC = () => {
   const { data, loading, error } = useGreenhouseData();
-  const [selectedPlant, setSelectedPlant] = useState<string>('');
+  const [selectedPlant, setSelectedPlant] = useState<string | null>(null);
 
   if (loading) {
     return (
@@ -161,14 +168,7 @@ export const GreenhouseStatus: React.FC = () => {
     );
   }
 
-  // Set default plant on first load
-  const currentPlant = selectedPlant 
-    ? plants.find(p => p.plant_name === selectedPlant) || plants[0]
-    : plants[0];
-
-  if (!selectedPlant && plants.length > 0) {
-    setSelectedPlant(plants[0].plant_name);
-  }
+  const currentPlant = (selectedPlant ? plants.find(p => p.plant_name === selectedPlant) : null) ?? plants[0];
 
   return (
     <div className="terra-card flex flex-col gap-5 h-full">
