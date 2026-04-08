@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGreenhouseData, GreenhouseMeasurement } from '@/hooks/useGreenhouseData';
 import { AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -126,9 +126,21 @@ const StatBubble = ({ label, value, icon, optimal }: { label: string; value: str
   </div>
 );
 
-export const GreenhouseStatus: React.FC = () => {
+interface GreenhouseStatusProps {
+  onPlantSelect?: (plant: GreenhouseMeasurement) => void;
+}
+
+export const GreenhouseStatus: React.FC<GreenhouseStatusProps> = ({ onPlantSelect }) => {
   const { data, loading, error } = useGreenhouseData();
   const [selectedPlant, setSelectedPlant] = useState<string | null>(null);
+
+  const plants = Object.values(data);
+  const currentPlant = (selectedPlant ? plants.find(p => p.plant_name === selectedPlant) : null) ?? plants[0];
+
+  // Must be before any early returns — Rules of Hooks
+  useEffect(() => {
+    if (currentPlant) onPlantSelect?.(currentPlant);
+  }, [currentPlant?.plant_name, currentPlant?.soil_moisture]);
 
   if (loading) {
     return (
@@ -157,8 +169,6 @@ export const GreenhouseStatus: React.FC = () => {
     );
   }
 
-  const plants = Object.values(data);
-
   if (plants.length === 0) {
     return (
       <div className="terra-card flex flex-col gap-5 h-full">
@@ -167,8 +177,6 @@ export const GreenhouseStatus: React.FC = () => {
       </div>
     );
   }
-
-  const currentPlant = (selectedPlant ? plants.find(p => p.plant_name === selectedPlant) : null) ?? plants[0];
 
   return (
     <div className="terra-card flex flex-col gap-5 h-full">

@@ -34,3 +34,35 @@ export async function fetchLiveData(): Promise<LiveDataResponse> {
   }
   return response.json();
 }
+
+export interface AIDecisionResponse {
+  decision: "water" | "no_action" | "alert_gardener";
+  water_ml: number;
+  urgency: "low" | "medium" | "high" | "critical";
+  plant_status: "healthy" | "stressed" | "diseased" | "critical";
+  diagnosis: string;
+  recommendations: string[];
+  next_check_minutes: number;
+}
+
+export async function requestAIDecision(plant: GreenhouseMeasurement): Promise<AIDecisionResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/autonomous-decision`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      plant_name: plant.plant_name,
+      sensor_data: {
+        soil_moisture:         plant.soil_moisture,
+        optimal_soil_moisture: plant.optimal_soil_moisture,
+        temperature:           plant.temperature,
+        humidity:              plant.humidity,
+        optimal_humidity:      plant.optimal_humidity,
+      },
+      ml_prediction: { label: "healthy", confidence: 0.85 },
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`AI decision failed (${response.status})`);
+  }
+  return response.json();
+}
