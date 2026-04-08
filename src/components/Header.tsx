@@ -1,9 +1,11 @@
-import { Battery, Cloud, Wifi, WifiOff } from "lucide-react";
+import { Battery, Wifi, WifiOff } from "lucide-react";
 import { motion } from "framer-motion";
+import { useRoverData } from "@/hooks/useRoverData";
 
 const Header = () => {
-  const isConnected = true;
-  const batteryLevel = 78;
+  const { data, loading, error } = useRoverData();
+  const isConnected = !loading && !error && !!data;
+  const batteryLevel = data?.battery_level;
 
   return (
     <header className="rounded-3xl bg-card shadow-pillow border border-border/50 px-6 py-4 flex items-center justify-between">
@@ -20,7 +22,9 @@ const Header = () => {
         {/* Battery */}
         <div className="flex items-center gap-2 bg-muted rounded-2xl px-4 py-2">
           <Battery className="w-5 h-5 text-terra-green" />
-          <span className="text-sm font-bold text-foreground">{batteryLevel}%</span>
+          <span className="text-sm font-bold text-foreground">
+            {typeof batteryLevel === "number" ? `${Math.round(batteryLevel)}%` : "--"}
+          </span>
         </div>
 
         {/* Connection */}

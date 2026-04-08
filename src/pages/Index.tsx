@@ -1,11 +1,15 @@
+import { useState } from "react";
 import Header from "@/components/Header";
 import RoverStatus from "@/components/RoverStatus";
 import { GreenhouseStatus } from "@/components/greenhousestatus";
 import RoverVision from "@/components/RoverVision";
 import ControlPanel from "@/components/ControlPanel";
 import EcoLove from "@/components/EcoLove";
+import { GreenhouseMeasurement } from "@/lib/api";
 
 const Index = () => {
+  const [selectedPlant, setSelectedPlant] = useState<GreenhouseMeasurement | null>(null);
+
   return (
     <div className="min-h-screen bg-background p-6 flex flex-col gap-5 max-w-[1440px] mx-auto">
       {/* Header */}
@@ -17,14 +21,14 @@ const Index = () => {
         <RoverStatus />
 
         {/* Center: Greenhouse Status */}
-        <GreenhouseStatus />
+        <GreenhouseStatus onPlantSelect={setSelectedPlant} />
 
         {/* Right: Rover Vision */}
         <RoverVision />
       </div>
 
       {/* Bottom: Control Panel */}
-      <ControlPanel />
+      <ControlPanel selectedPlant={selectedPlant} />
 
       {/* Eco Collapsible */}
       <EcoLove />
